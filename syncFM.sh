@@ -42,6 +42,6 @@ done
 
 # Go grab the remote file maker backups and bring them all over to our backup folder locally
 
-rsync -av $srcHst:"$srcDir" /Library/FileMaker\ Server/Data/Backups/ | logger -t FileMakerSync || logger -t FileMakerSync -p local3.error 
+rsync -av --delete $srcHst:"$srcDir" /Library/FileMaker\ Server/Data/Backups/ | logger -t FileMakerSync || logger -t FileMakerSync -p local3.error 
 rm -rf /Library/FileMaker\ Server/Data/Databases
 cp -rp /Library/FileMaker\ Server/Data/Backups/`ls -1tr /Library/FileMaker\ Server/Data/Backups/ | tail -n 1`/Databases /Library/FileMaker\ Server/Data/Databases
