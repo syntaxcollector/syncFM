@@ -15,8 +15,8 @@ internalDomain="lan.playmgmt.com"
 hostname=`hostname`
 smtpServer="smtp.gmail.com"
 smtpPort="587"
-smtpUser="systems@copiouscom.com"
-smtpPass="a;ghslut"
+smtpUser=""
+smtpPass=""
 
 startFM() {
 if [ `/Library/FileMaker\ Server/Database\ Server/bin/fmserverd -help | wc -l` -eq 4 ]; then
