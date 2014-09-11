@@ -1,19 +1,31 @@
 #!/bin/bash
 
-# A simple script to sync filemaker databases from crosstown to yaletown
+# A simple script to sync filemaker databases from crosstown to $hostname
 # BONUS FUNCTION: monitors remote filemaker server for TCP port connection
 # SUPER BONUS FOR THE WIN: starts local file maker server when remote is offline
 # Written by: Jordan Eunson jordan@copiousit.com
 
-srcHst="yaletown"
+srcHst="oscar"
 srcDir="/Library/FileMaker\ Server/Data/Backups/"
 dstDir='/Library/FileMaker\ Server/Data/Backups/'
 telnet=$(which telnet)
-adminEmail=( systems@copiouscom.com )
+adminEmail=( $smtpUser )
 sendEmail=/usr/local/bin/sendEmail
+internalDomain="lan.playmgmt.com"
+hostname=`hostname`
+smtpServer="smtp.gmail.com"
+smtpPort="587"
+smtpUser="systems@copiouscom.com"
+smtpPass="a;ghslut"
 
 startFM() {
+if [ `/Library/FileMaker\ Server/Database\ Server/bin/fmserverd -help | wc -l` -eq 4 ]; then
 /usr/bin/fmsadmin start server
+fileMaker=0	
+else 
+fileMaker=1
+fi
+return $fileMaker
 }
 
 # connect to the remote filemaker tcp port, if the connection fails three times in a row send an email blast to adminEmail array
@@ -29,12 +41,21 @@ if [ "$?" -ne "1" ]; then #Ok
 else #Connection failure
   counter=$(($counter + 1))
   if [ $counter -eq 3 ]; then
-  	for j in "${adminEmail[@]}"; {
- 	$sendEmail -f "yaletown@van.adventvancouver.com" -t $j -u Cannot connect to port 5003 on $srcHst -s smtp.gmail.com:587 -xu systems@copiouscom.com -xp "" -m "FileMaker Port check failed, started FileMaker Server locally"
-}
-	logger -t FileMakerSync -p local0.emerg "FileMaker Port check failed"
 	startFM
- 	exit 0
+	fileMaker=$?
+	if [ $fileMaker -eq 0 ]; then
+ 		for j in "${adminEmail[@]}"; {
+ 		$sendEmail -f "$hostname@$internalDomain" -t $j -u ALERT: FileMaker on $srcHst DOWN -s $smtpServer:$smtpPort -xu $smtpUser -xp "$smtpPass" -m "FileMaker Port check failed, started FileMaker Server locally. I am `hostname`"
+}
+		logger -t FileMakerSync -p local0.emerg "FileMaker Port check failed, started server locally"
+		exit 0
+        else
+		for j in "${adminEmail[@]}"; {
+                $sendEmail -f "$hostname@$internalDomain" -t $j -u ALERT: FileMaker on $srcHst DOWN -s $smtpServer:$smtpPort -xu $smtpUser -xp "$smtpPass" -m "FileMaker Port check failed, could not start server locally, service already running. I am `hostname`"
+}
+                logger -t FileMakerSync -p local0.emerg "FileMaker Port check failed, could not start server locally, service already running."
+ 		exit 1
+	fi
    fi
 fi
 done
